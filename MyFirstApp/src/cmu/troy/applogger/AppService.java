@@ -18,7 +18,10 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
+import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,16 +35,45 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-public class AppService extends WakefulIntentService {
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import cmu.troy.applogger.JSONKeys.JSONValues;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient;
+import com.google.android.gms.location.LocationClient;
+
+
+public class AppService extends WakefulIntentService implements 
+GooglePlayServicesClient.ConnectionCallbacks,
+GooglePlayServicesClient.OnConnectionFailedListener{
+  
+  private LocationClient mLocationClient;
+  
 	public AppService() {
 		super("AppService");
+		
+	}
+
+	@Override
+  public void onCreate(){
+	  super.onCreate();
+	  mLocationClient = new LocationClient(this, this, this);
+	  mLocationClient.connect();
+	}
+	
+	@Override
+	public void onDestroy(){
+	  mLocationClient.disconnect();
+	  super.onDestroy();
 	}
 
 	private List<String> getLastApps() throws IOException{
 		File file = Tools.getLastAppFile();
 		ArrayList<String> res = new ArrayList<String>();
 		if (!file.exists()){
-		  Tools.saveCreateFile(file);
+		  Tools.safeCreateFile(file);
 			return res;
 		}
 		
@@ -96,15 +128,32 @@ public class AppService extends WakefulIntentService {
 		writer.close();
 		
 		/* Append new Apps into log file */
-		file = Tools.getLogFile();
-		Tools.saveCreateFile(file);
-		writer = new PrintWriter(new BufferedWriter(new FileWriter(file.getAbsoluteFile(), true)));
-		writer.println(Tools.STAR_SPLIT);
-		writer.println(now.toString());
-		for (String s : newApps){
-			writer.println(s);
-		}
-		writer.close();
+		JSONObject job = new JSONObject();
+		String id = String.valueOf(now.getTime());
+		try {
+      job.put(JSONKeys.id, id);
+      job.put(JSONKeys.first, newApps.get(0));
+      job.put(JSONKeys.log_type, JSONValues.OPEN_AN_APP);
+  		/* Log Location block */
+  		Location mLocation = null;
+  		if (mLocationClient.isConnected())
+  		  mLocation = mLocationClient.getLastLocation();
+  		if (mLocation != null){
+  		  job.put(JSONKeys.loc_available, true);
+  		  job.put(JSONKeys.latitude, mLocation.getLatitude());
+  		  job.put(JSONKeys.longitude, mLocation.getLongitude());
+  		  job.put(JSONKeys.location_accuracy, mLocation.getAccuracy());
+  		  job.put(JSONKeys.location_updated_time, (new Date(mLocation.getTime())).toString());
+  		}
+  		else{
+  		  if (!mLocationClient.isConnecting())
+  		    mLocationClient.connect();
+  		  job.put(JSONKeys.loc_available, false);
+  		}
+		} catch (JSONException e) {
+      Log.e("JSON", e.toString());
+    }
+		Tools.logJsonNewBlock(job);
 	}
 	
 	private boolean checkExternalStorageAvailable(){
@@ -141,4 +190,22 @@ public class AppService extends WakefulIntentService {
 	    }
 		
     }
+
+  @Override
+  public void onConnectionFailed(ConnectionResult arg0) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void onConnected(Bundle arg0) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void onDisconnected() {
+    // TODO Auto-generated method stub
+    
+  }
 }

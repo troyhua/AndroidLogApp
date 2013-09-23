@@ -9,6 +9,12 @@ import java.io.RandomAccessFile;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.location.LocationClient;
+
+import cmu.troy.myfirstapp.LogContent;
 import cmu.troy.myfirstapp.R;
 import cmu.troy.myfirstapp.R.id;
 import cmu.troy.myfirstapp.R.layout;
@@ -25,10 +31,12 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.support.v4.app.FragmentActivity;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
@@ -36,11 +44,15 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends FragmentActivity implements 
+  GooglePlayServicesClient.ConnectionCallbacks,
+  GooglePlayServicesClient.OnConnectionFailedListener{
 
 	public final static String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
 	public final static int PERIOD = 1000;
-
+	
+	public LocationClient mLocationClient;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -48,9 +60,16 @@ public class MainActivity extends Activity {
 		Tools.setAlarm(this, PERIOD);
 		registBroadcastReceiver();
 		TelephonyManager telephony = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
-		telephony.listen(new MyPhoneStateListener(),PhoneStateListener.LISTEN_CALL_STATE);
+		telephony.listen(new MyPhoneStateListener(this),PhoneStateListener.LISTEN_CALL_STATE);
+		mLocationClient = new LocationClient(this, this, this);
 	}
 
+	@Override
+	protected void onStart(){
+	  super.onStart();
+	  mLocationClient.connect();
+	}
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.main, menu);
@@ -67,7 +86,24 @@ public class MainActivity extends Activity {
 	    getApplicationContext().registerReceiver(mScreenReceiver, theFilter);
 	}
 
-	// The function called by the button "send", used to show some debug information
+	public void checkCurrentLocation(View view){
+	  TextView mainView = (TextView) findViewById(R.id.main_view);
+	  
+	  int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+	  if (ConnectionResult.SUCCESS != resultCode){
+	    mainView.setText("Failed to access Google Play Service");
+	    return;
+	  }
+	  Location mCurrentLocation = mLocationClient.getLastLocation();
+	  mainView.setText(Tools.getLocationString(mCurrentLocation));
+	}
+	
+	public void goToAnalyzer(View view){
+	  LogContent.refreshItem();
+	  Intent intent = new Intent(this, cmu.troy.myfirstapp.ReportListActivity.class);
+	  startActivity(intent);
+	}
+	
 	public void seeDebug(View view){
 		TextView mainView = (TextView) findViewById(R.id.main_view);
 		StringBuilder sb = new StringBuilder();
@@ -115,9 +151,36 @@ public class MainActivity extends Activity {
 		mainView.setText(Tools.getLastFewLines(Tools.getLogFile(), maxLine));
 	}
 
+	@Override
+	protected void onStop(){
+	  mLocationClient.disconnect();
+	  super.onStop();
+	}
+	
 	public void onDestroy() {
 		super.onDestroy();
 		android.os.Debug.stopMethodTracing();
 	}
+
+
+  @Override
+  public void onConnectionFailed(ConnectionResult arg0) {
+    // TODO Auto-generated method stub
+    
+  }
+
+
+  @Override
+  public void onConnected(Bundle arg0) {
+    // TODO Auto-generated method stub
+    
+  }
+
+
+  @Override
+  public void onDisconnected() {
+    // TODO Auto-generated method stub
+    
+  }
 
 }

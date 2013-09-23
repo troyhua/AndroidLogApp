@@ -11,19 +11,27 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import android.annotation.SuppressLint;
+import org.json.JSONObject;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Environment;
 import android.os.Handler;
 import android.widget.Toast;
 
 public class Tools {
 
-  private static final String logfile = "log/log_v0.2";
+  private static final String version = "v0.3";
+
+  private static final String fileNamePattern = "log_v0\\.3-(\\d{8})\\.txt";
+
+  private static final String logfile = "log/log_" + version;
 
   private static final String lastApp = "log/lastApp.txt";
 
@@ -75,6 +83,26 @@ public class Tools {
     return file;
   }
 
+  public static String getTimeSpanString(Date early, Date late) {
+    long totalSeconds = (late.getTime() - early.getTime()) / 1000;
+    StringBuilder sb = new StringBuilder();
+    sb.append((totalSeconds / 3600) + " h " + (totalSeconds % 3600) / 60 + " m " + totalSeconds
+            % 60 + " s");
+    return sb.toString();
+  }
+
+  public static String getDateFromLogFile(File file) {
+    String name = file.getName();
+    Pattern p = Pattern.compile(fileNamePattern);
+    Matcher matcher = p.matcher(name);
+    if (matcher.find()) {
+      if (name.startsWith("updated"))
+        return null;
+      return matcher.group(1);
+    } else
+      return null;
+  }
+
   public static File getLastAppFile() {
     File file = new File(Environment.getExternalStorageDirectory(), lastApp);
     return file;
@@ -90,8 +118,8 @@ public class Tools {
     String line = raf.readLine();
     ArrayList<String> lines = new ArrayList<String>();
     while (line != null) {
-      line = raf.readLine();
       lines.add(line);
+      line = raf.readLine();
     }
     for (int i = max((lines.size() - lineNum), 0); i < lines.size(); i++) {
       sb.append(lines.get(i) + "\n");
@@ -103,23 +131,72 @@ public class Tools {
   public static void logNewBlock(String content) {
     try {
       File file = Tools.getLogFile();
+      Tools.safeCreateFile(file);
       PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
               file.getAbsoluteFile(), true)));
       writer.println(Tools.STAR_SPLIT);
       writer.println((new Date()).toString());
-      writer.println(content);
+      if (!content.endsWith("\n"))
+        writer.println(content);
+      else
+        writer.print(content);
       writer.close();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public static void saveCreateFile(File file) throws IOException {
+  public static void safeCreateFile(File file) throws IOException {
     if (!file.exists()) {
       File theDir = file.getParentFile();
       if (!theDir.exists())
         theDir.mkdir();
       file.createNewFile();
     }
+  }
+
+  public static String getLocationString(Location location) {
+    return "Longitude: " + location.getLongitude() + "\n" + "Latitude: " + location.getLatitude()
+            + "\n" + "Accuracy: " + location.getAccuracy() + "\n" + "Updated Time: "
+            + (new Date(location.getTime())).toString() + "\n" + "Raw Form: " + location.toString();
+  }
+
+  public static void logJsonNewBlock(JSONObject object) {
+    try {
+      File file = Tools.getLogFile();
+      Tools.safeCreateFile(file);
+      PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
+              file.getAbsoluteFile(), true)));
+      object.put(JSONKeys.time, (new Date()).toString());
+      writer.println(object);
+      writer.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private static File createUpdatedFile(File oldFile) {
+    return new File(oldFile.getParent(), "updated-" + oldFile.getName());
+  }
+
+  public static boolean updatedFileExist(File oldFile) {
+    File file = createUpdatedFile(oldFile);
+    return file.exists();
+  }
+
+  public static void newLogFile(List<JSONObject> jobs, File oldFile) {
+    try {
+      File file = createUpdatedFile(oldFile);
+      Tools.safeCreateFile(file);
+      PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
+              file.getAbsoluteFile(), false)));
+
+      for (JSONObject job : jobs)
+        writer.println(job);
+      writer.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
   }
 }

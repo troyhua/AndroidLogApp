@@ -1,11 +1,10 @@
 package cmu.troy.applogger;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Date;
+
+import org.json.JSONObject;
+
+import cmu.troy.applogger.JSONKeys.JSONValues;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -21,19 +20,20 @@ public class ScreenReceiver extends BroadcastReceiver {
 			String strAction = intent.getAction();
 			if (strAction.equals(Intent.ACTION_SCREEN_OFF)
 					|| strAction.equals(Intent.ACTION_SCREEN_ON)) {
-				File file = Tools.getLogFile();
-				PrintWriter writer = new PrintWriter(new BufferedWriter(
-						new FileWriter(file.getAbsoluteFile(), true)));
-				writer.println(Tools.STAR_SPLIT);
-				writer.println((new Date()).toString());
-				if (strAction.equals(Intent.ACTION_SCREEN_OFF))
-					writer.println("Screen Off");
-				else
-					writer.println("Screen On");
-				writer.close();
+				if (strAction.equals(Intent.ACTION_SCREEN_OFF)){
+				  JSONObject job = new JSONObject();
+				  job.put(JSONKeys.id, String.valueOf((new Date()).getTime()));
+				  job.put(JSONKeys.log_type, JSONValues.SCREEN_OFF);
+				  Tools.logJsonNewBlock(job);
+				}
+				else{
+				  JSONObject job = new JSONObject();
+          job.put(JSONKeys.id, String.valueOf((new Date()).getTime()));
+          job.put(JSONKeys.log_type, JSONValues.SCREEN_ON);
+          Tools.logJsonNewBlock(job);
+				}
 			}
-		} catch (IOException e) {
-
+		} catch (Exception e) {
 		}
 	}
 }

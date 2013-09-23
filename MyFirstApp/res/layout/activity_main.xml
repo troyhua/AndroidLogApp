@@ -5,28 +5,52 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
     
-<!--     
-		<EditText android:id="@+id/edit_message"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:hint="@string/edit_message" />
- -->
- 
-    <Button android:layout_width="wrap_content"
+	<LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal" >
+
+		<Button android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/button_check"
         android:onClick="seelog" />
 
-    <Button android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_last"
-        android:onClick="seelast" />
+	    <Button android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="@string/button_last"
+	        android:onClick="seelast" />
+		    
+	</LinearLayout>
     
-    <Button
+    <LinearLayout 
+        android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal">
+        <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="seeDebug"
         android:text="@string/debug_button" />
+
+   	 	<Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="checkCurrentLocation"
+        android:text="@string/location_button" />
+    </LinearLayout>
+    
+    <LinearLayout 
+        android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal">
+        <Button 
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="goToAnalyzer"
+            android:text="Open Analyzer"/>
+        
+    </LinearLayout>
+    
 
     <TextView
         android:id="@+id/main_view"
