@@ -49,7 +49,7 @@ public class MainActivity extends FragmentActivity implements
   GooglePlayServicesClient.OnConnectionFailedListener{
 
 	public final static String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
-	public final static int PERIOD = 1000;
+	public final static int PERIOD = 2000;
 	
 	public LocationClient mLocationClient;
 	

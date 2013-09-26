@@ -50,6 +50,15 @@ public class Tools {
     else
       return b;
   }
+  
+  public static String getPackage(String fullAppPath){
+    return fullAppPath.substring(0, fullAppPath.indexOf("/"));
+  }
+  
+  public static String getSimpleTime(Date time){
+    SimpleDateFormat format = new SimpleDateFormat("hh:mm");
+    return format.format(time);
+  }
 
   public static void setAlarm(Context context, int period) {
     AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);

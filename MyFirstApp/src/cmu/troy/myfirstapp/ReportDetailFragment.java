@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import org.json.JSONException;
@@ -14,29 +12,30 @@ import org.json.JSONObject;
 
 import android.app.ActionBar.OnNavigationListener;
 import android.content.Context;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.TextUtils;
+import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import cmu.troy.applogger.JSONKeys;
+import android.widget.ToggleButton;
 import cmu.troy.applogger.LogAnalyzer;
-import cmu.troy.applogger.Tools;
 import cmu.troy.applogger.LogAnalyzer.Event;
 
 import com.haarman.listviewanimations.ArrayAdapter;
+import com.haarman.listviewanimations.itemmanipulation.ExpandableListItemAdapter;
 import com.haarman.listviewanimations.itemmanipulation.OnDismissCallback;
 import com.haarman.listviewanimations.itemmanipulation.SwipeDismissAdapter;
+//import com.haarman.listviewanimations.itemmanipulation.ExpandableListItemAdapter.TitleViewOnClickListener;
 import com.haarman.listviewanimations.itemmanipulation.contextualundo.ContextualUndoAdapter.DeleteItemCallback;
+import com.nineoldandroids.animation.Animator;
+import com.nineoldandroids.animation.ValueAnimator;
 
 /**
  * A fragment representing a single Report detail screen. This fragment is either contained in a
@@ -64,13 +63,23 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
   public ReportDetailFragment() {
   }
 
-  private static class MyListAdapter extends ArrayAdapter<Event> {
+  private static class MyListAdapter extends ExpandableListItemAdapter<Event> {
 
     private Context mContext;
+    private int mViewLayoutResId;
+    private int mTitleParentResId;
+    private int mContentParentResId;
+    
+    public List<Long> mVisibleIds;
 
     public MyListAdapter(Context context, List<Event> items) {
-      super(items);
+      super(context, R.layout.activity_expandablelistitem_card, R.id.activity_expandablelistitem_card_title, R.id.activity_expandablelistitem_card_content, items);
+//      super(context, items);
+      mViewLayoutResId = R.layout.activity_expandablelistitem_card;
+      mTitleParentResId = R.id.activity_expandablelistitem_card_title;
+      mContentParentResId = R.id.activity_expandablelistitem_card_content;
       mContext = context;
+      mVisibleIds = new ArrayList<Long>();
     }
 
     @Override
@@ -83,8 +92,162 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
       return true;
     }
 
+    private static class ViewHolder {
+      ViewGroup titleParent;
+      ViewGroup contentParent;
+      View titleView;
+      View contentView;
+    }
+
+    private ViewGroup createView(ViewGroup parent) {
+      ViewGroup view;
+
+//      if (mViewLayoutResId == 0) {
+//        view = new RootView(mContext);
+//      } else {
+        view = (ViewGroup) LayoutInflater.from(mContext).inflate(mViewLayoutResId, parent, false);
+//      }
+
+      return view;
+    }
+    
+    public View getView(int position, View convertView, ViewGroup parent){
+      ViewGroup view = (ViewGroup) convertView;
+      ViewHolder viewHolder;
+
+      if (view == null) {
+        view = createView(parent);
+        viewHolder = new ViewHolder();
+        viewHolder.titleParent = (ViewGroup) view.findViewById(mTitleParentResId);
+        viewHolder.contentParent = (ViewGroup) view.findViewById(mContentParentResId);
+
+        view.setTag(viewHolder);
+      } else {
+        viewHolder = (ViewHolder) view.getTag();
+      }
+
+      View titleView = getTitleView(position, viewHolder.titleView, viewHolder.titleParent);
+      if (!titleView.equals(viewHolder.titleView)) {
+        viewHolder.titleParent.removeAllViews();
+        viewHolder.titleParent.addView(titleView);
+        
+        View buttonView = (View)LayoutInflater.from(mContext).inflate(R.layout.my_toggle, parent, false);
+        
+       buttonView.findViewById(R.id.mytoggle).setOnClickListener(new TitleViewOnClickListener(viewHolder.contentParent));
+       viewHolder.titleParent.addView(buttonView);
+      }
+      viewHolder.titleView = titleView;
+
+      View contentView = getContentView(position, viewHolder.contentView, viewHolder.contentParent);
+      if (!contentView.equals(viewHolder.contentView)) {
+        viewHolder.contentParent.removeAllViews();
+        viewHolder.contentParent.addView(contentView);
+      }
+
+      viewHolder.contentParent.setVisibility(mVisibleIds.contains(getItemId(position)) ? View.VISIBLE : View.GONE);
+      viewHolder.contentParent.setTag(getItemId(position));
+      return view;
+    }
+    
+    
+    private class TitleViewOnClickListener implements View.OnClickListener {
+
+      private View mContentParent;
+
+      private TitleViewOnClickListener(View contentParent) {
+        this.mContentParent = contentParent;
+      }
+
+      @Override
+      public void onClick(View view) {
+        boolean isVisible = mContentParent.getVisibility() == View.VISIBLE;
+
+        if (isVisible) {
+          animateCollapsing();
+          mVisibleIds.remove(mContentParent.getTag());
+        } else {
+          animateExpanding();
+          mVisibleIds.add((Long) mContentParent.getTag());
+        }
+      }
+
+      private void animateCollapsing() {
+        int origHeight = mContentParent.getHeight();
+
+        ValueAnimator animator = createHeightAnimator(origHeight, 0);
+        animator.addListener(new Animator.AnimatorListener() {
+          @Override
+          public void onAnimationStart(Animator animator) {
+          }
+
+          @Override
+          public void onAnimationEnd(Animator animator) {
+            mContentParent.setVisibility(View.GONE);
+          }
+
+          @Override
+          public void onAnimationCancel(Animator animator) {
+          }
+
+          @Override
+          public void onAnimationRepeat(Animator animator) {
+          }
+        });
+        animator.start();
+      }
+
+      private void animateExpanding() {
+        mContentParent.setVisibility(View.VISIBLE);
+
+        final int widthSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        final int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        mContentParent.measure(widthSpec, heightSpec);
+
+        ValueAnimator animator = createHeightAnimator(0, mContentParent.getMeasuredHeight());
+        animator.start();
+      }
+
+      private ValueAnimator createHeightAnimator(int start, int end) {
+        ValueAnimator animator = ValueAnimator.ofInt(start, end);
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+          @Override
+          public void onAnimationUpdate(ValueAnimator valueAnimator) {
+            int value = (Integer) valueAnimator.getAnimatedValue();
+
+            ViewGroup.LayoutParams layoutParams = mContentParent.getLayoutParams();
+            layoutParams.height = value;
+            mContentParent.setLayoutParams(layoutParams);
+          }
+        });
+        return animator;
+      }
+    }
+    
+//    @Override
+//    public View getView(int position, View convertView, ViewGroup parent) {
+//      View view = super.getView(position, convertView, parent);
+////      view.setOnClickListener(null);
+////      TextView tv = (TextView) convertView;
+////      if (tv == null) {
+////        tv = (TextView) LayoutInflater.from(mContext).inflate(R.layout.list_row, parent, false);
+////      }
+////      tv.setText(getItem(position).content);
+////      return tv;
+//      return view;
+//    }
+    
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getTitleView(int position, View convertView, ViewGroup parent) {
+      TextView tv = (TextView) convertView;
+      if (tv == null) {
+        tv = (TextView) LayoutInflater.from(mContext).inflate(R.layout.list_row, parent, false);
+      }
+      tv.setText(getItem(position).title);
+      return tv;
+    }
+
+    @Override
+    public View getContentView(int position, View convertView, ViewGroup parent) {
       TextView tv = (TextView) convertView;
       if (tv == null) {
         tv = (TextView) LayoutInflater.from(mContext).inflate(R.layout.list_row, parent, false);

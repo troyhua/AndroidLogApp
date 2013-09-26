@@ -2,7 +2,10 @@ package cmu.troy.applogger;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +35,7 @@ public class LogAnalyzer {
             Event event = createEvent(unitList.subList(lastIndex, i));
             if (!event.ommited)
               ret.add(event);
-            lastIndex = i + 1;
+            lastIndex = i;
             lastDate = thisDate;
           } else {
             lastDate = thisDate;
@@ -42,6 +45,13 @@ public class LogAnalyzer {
         Log.e("json", e.toString());
       }
     }
+    try {
+      Event event = createEvent(unitList.subList(lastIndex, unitList.size()));
+      if (!event.ommited)
+        ret.add(event);
+    } catch (Exception e) {
+      Log.e("json", e.toString());
+    }
     return ret;
   }
 
@@ -50,41 +60,89 @@ public class LogAnalyzer {
     event.allUnitEvents = unitList;
     for (JSONObject job : unitList) {
       String type = job.getString(JSONKeys.log_type);
-      if (type.equals(JSONValues.INCOMING_CALL) || type.equals(JSONValues.OUTGOING_CALL)){
+      if (type.equals(JSONValues.INCOMING_CALL) || type.equals(JSONValues.OUTGOING_CALL)) {
         event.callEvent = job;
-        break;
       }
-      if (type.equals(JSONValues.OPEN_AN_APP)){
+      if (type.equals(JSONValues.CALL_END)) {
+        event.callEndEvent = job;
+      }
+      if (type.equals(JSONValues.OPEN_AN_APP)) {
         String appPath = job.getString(JSONKeys.first);
-        if (!appPath.startsWith("com.android.launcher/")){
-          event.noDesktopApp.add(job);
+        if (!appPath.startsWith("com.android.launcher/") && !appPath.startsWith("com.android.systemui")) {
+          String packageName = Tools.getPackage(appPath);
+          if (event.appMap.containsKey(packageName))
+            event.appMap.put(packageName, event.appMap.get(packageName));
+          else
+            event.appMap.put(packageName, 1);
         }
       }
     }
-    
+
     renderEvent(event);
-    
+
     return event;
   }
-  
-  public static void renderEvent(Event event) throws JSONException{
-    if (event.callEvent != null){
-      Date time = new Date(Date.parse(event.callEvent.getString(JSONKeys.time)));
-      SpannableString ns = new SpannableString("Contacted " + event.callEvent.getString(JSONKeys.number)
-              + " at " + time.getHours() + ":" + time.getMinutes());
+
+  public static void renderEvent(Event event) throws JSONException {
+
+    if (event.callEvent != null) {
+
+      SpannableString ns = new SpannableString("Contacted "
+              + event.callEvent.getString(JSONKeys.number));
       ns.setSpan(new ForegroundColorSpan(Color.BLUE), 0, 10, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.title = ns;
+      String startTime = Tools.getSimpleTime(new Date(Date.parse(event.callEvent
+              .getString(JSONKeys.time))));
+      ns = new SpannableString("From " + startTime);
+      ns.setSpan(new ForegroundColorSpan(Color.GRAY), 5, 10, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
       event.content = ns;
-      return;
-    }
-    if (event.noDesktopApp.size() != 0){
-      for (JSONObject job : event.noDesktopApp){
-        Date time = new Date(Date.parse(job.getString(JSONKeys.time)));
-        SpannableString ns = new SpannableString("Opened " + job.getString(JSONKeys.first)
-          + " at " + time.getHours() + ":" + time.getMinutes() + "\n");
-        ns.setSpan(new ForegroundColorSpan(Color.GREEN), 0, 6, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      if (event.callEndEvent != null) {
+        ns = new SpannableString(" to "
+                + Tools.getSimpleTime(new Date(Date.parse(event.callEndEvent
+                        .getString(JSONKeys.time)))));
+        ns.setSpan(new ForegroundColorSpan(Color.GRAY), 4, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         event.content = TextUtils.concat(event.content, ns);
       }
-      event.content = event.content.subSequence(0, event.content.length() - 1);
+      return;
+    }
+    if (!event.appMap.isEmpty()) {
+      Iterator<Entry<String, Integer>> it = event.appMap.entrySet().iterator();
+      int max = -1;
+      String keyApp = "";
+      List<String> apps = new ArrayList<String>();
+      while (it.hasNext()) {
+        Entry<String, Integer> pairs = (Entry<String, Integer>) it.next();
+        if (pairs.getValue() > max) {
+          max = pairs.getValue();
+          keyApp = pairs.getKey();
+        }
+        apps.add(pairs.getKey());
+      }
+      SpannableString ns = new SpannableString("Used " + keyApp);
+      ns.setSpan(new ForegroundColorSpan(Color.GREEN), 0, 4, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.title = ns;
+      event.content = "";
+      ns = new SpannableString("From "
+              + Tools.getSimpleTime(new Date(Date.parse(event.allUnitEvents.get(0).getString(
+                      JSONKeys.time)))));
+      ns.setSpan(new ForegroundColorSpan(Color.GRAY), 5, 10, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.content = TextUtils.concat(event.content, ns);
+      ns = new SpannableString(" to "
+              + Tools.getSimpleTime(new Date(Date.parse(event.allUnitEvents.get(
+                      event.allUnitEvents.size() - 1).getString(JSONKeys.time)))));
+      ns.setSpan(new ForegroundColorSpan(Color.GRAY), 4, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.content = TextUtils.concat(event.content, ns);
+      if (apps.size() > 1){
+        ns = new SpannableString("\nWith the following apps:");
+        ns.setSpan(new ForegroundColorSpan(Color.CYAN), 1, ns.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        event.content = TextUtils.concat(event.content, ns);
+        StringBuilder sb = new StringBuilder();
+        for (String app : apps){
+          if (!app.equals(keyApp))
+            sb.append("\n" + app);
+        }
+        event.content = TextUtils.concat(event.content, sb.toString());
+      }
       return;
     }
     event.ommited = true;
@@ -93,11 +151,22 @@ public class LogAnalyzer {
 
   public static class Event {
     public List<JSONObject> allUnitEvents;
+
     public CharSequence content = "";
+
+    public CharSequence title = "";
+
     public JSONObject keyEvent;
+
     public JSONObject callEvent = null;
+
+    public JSONObject callEndEvent = null;
+
     public boolean ommited = false;
+
     public List<JSONObject> noDesktopApp = new ArrayList<JSONObject>();
+
+    public HashMap<String, Integer> appMap = new HashMap<String, Integer>();
 
     public Event() {
     }
