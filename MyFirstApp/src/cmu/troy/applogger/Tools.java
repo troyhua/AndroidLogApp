@@ -35,6 +35,8 @@ public class Tools {
 
   private static final String lastApp = "log/lastApp.txt";
 
+  private static final String musicFile = "log/music.txt";
+
   public static final String STAR_SPLIT = "****************";
 
   public static int max(int a, int b) {
@@ -50,12 +52,23 @@ public class Tools {
     else
       return b;
   }
-  
-  public static String getPackage(String fullAppPath){
+
+  public static void LogMusic(String message) throws IOException {
+    File file = new File(Environment.getExternalStorageDirectory(), musicFile);
+    Tools.safeCreateFile(file);
+    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd, hh:mm:ss");
+    Date now = new Date();
+    PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(file.getAbsoluteFile(),
+            true)));
+    writer.println(dateFormat.format(now) + "\t" + message);
+    writer.close();
+  }
+
+  public static String getPackage(String fullAppPath) {
     return fullAppPath.substring(0, fullAppPath.indexOf("/"));
   }
-  
-  public static String getSimpleTime(Date time){
+
+  public static String getSimpleTime(Date time) {
     SimpleDateFormat format = new SimpleDateFormat("hh:mm");
     return format.format(time);
   }

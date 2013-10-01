@@ -2,47 +2,30 @@ package cmu.troy.applogger;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.Iterator;
-import java.util.List;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesClient;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.location.LocationClient;
-
-import cmu.troy.myfirstapp.LogContent;
-import cmu.troy.myfirstapp.R;
-import cmu.troy.myfirstapp.R.id;
-import cmu.troy.myfirstapp.R.layout;
-import cmu.troy.myfirstapp.R.menu;
-
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.app.ActivityManager.RecentTaskInfo;
-import android.app.ActivityManager.RunningAppProcessInfo;
-import android.app.ActivityManager.RunningTaskInfo;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
+import cmu.troy.myfirstapp.LogContent;
+import cmu.troy.myfirstapp.R;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.location.LocationClient;
 
 public class MainActivity extends FragmentActivity implements 
   GooglePlayServicesClient.ConnectionCallbacks,
@@ -50,6 +33,7 @@ public class MainActivity extends FragmentActivity implements
 
 	public final static String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
 	public final static int PERIOD = 2000;
+	private static String lastMusic = "";
 	
 	public LocationClient mLocationClient;
 	
@@ -62,6 +46,53 @@ public class MainActivity extends FragmentActivity implements
 		TelephonyManager telephony = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
 		telephony.listen(new MyPhoneStateListener(this),PhoneStateListener.LISTEN_CALL_STATE);
 		mLocationClient = new LocationClient(this, this, this);
+		bindMusicListener();
+	}
+	
+	private void bindMusicListener(){
+	  BroadcastReceiver mReceiver = new BroadcastReceiver() {
+	    @Override
+	    public void onReceive(Context context, Intent intent)
+	    {
+	        String action = intent.getAction();
+	        String cmd = intent.getStringExtra("command");
+	        Log.d("mIntentReceiver.onReceive ", action + " / " + cmd);
+	        String artist = intent.getStringExtra("artist");
+	        String album = intent.getStringExtra("album");
+	        String track = intent.getStringExtra("track");
+	        String message = artist+":"+album+":"+track;
+	        Log.d("Music",message);
+	        if (!lastMusic.equals(message)){
+	          lastMusic = message;
+	          try{
+	          Tools.LogMusic(message);
+	          }catch(Exception e){
+	            Log.e("music", e.toString());
+	          }
+	        }
+	        
+	    }
+	};
+	  IntentFilter iF = new IntentFilter();
+//    iF.addAction("com.android.music.metachanged");
+//    iF.addAction("com.android.music.playstatechanged");
+//    iF.addAction("com.android.music.playbackcomplete");
+//    iF.addAction("com.android.music.queuechanged");
+    
+    iF.addAction("com.android.music.metachanged");
+    iF.addAction("com.htc.music.metachanged");
+//    iF.addAction("fm.last.android.metachanged");
+//    iF.addAction("com.sec.android.app.music.metachanged");
+//    iF.addAction("com.nullsoft.winamp.metachanged");
+    iF.addAction("com.amazon.mp3.metachanged");     
+//    iF.addAction("com.miui.player.metachanged");        
+//    iF.addAction("com.real.IMP.metachanged");
+//    iF.addAction("com.sonyericsson.music.metachanged");
+    iF.addAction("com.rdio.android.metachanged");
+//    iF.addAction("com.samsung.sec.android.MusicPlayer.metachanged");
+//    iF.addAction("com.andrew.apollo.metachanged");
+    
+    registerReceiver(mReceiver, iF);
 	}
 
 	@Override
