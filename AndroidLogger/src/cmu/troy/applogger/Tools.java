@@ -67,6 +67,14 @@ public class Tools {
   public static String getPackage(String fullAppPath) {
     return fullAppPath.substring(0, fullAppPath.indexOf("/"));
   }
+  
+  public static String getAppName(String fullAppPath){
+    String packageName = fullAppPath.substring(0, fullAppPath.indexOf("/"));
+    if (MainActivity.package2name.containsKey(packageName))
+      return MainActivity.package2name.get(packageName);
+    else
+      return packageName;
+  }
 
   public static String getSimpleTime(Date time) {
     SimpleDateFormat format = new SimpleDateFormat("hh:mm");

@@ -67,15 +67,20 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
   private static class MyListAdapter extends ExpandableListItemAdapter<Event> {
 
     private Context mContext;
+
     private int mViewLayoutResId;
+
     private int mTitleParentResId;
+
     private int mContentParentResId;
-    
+
     public List<Long> mVisibleIds;
 
     public MyListAdapter(Context context, List<Event> items) {
-      super(context, R.layout.activity_expandablelistitem_card, R.id.activity_expandablelistitem_card_title, R.id.activity_expandablelistitem_card_content, items);
-//      super(context, items);
+      super(context, R.layout.activity_expandablelistitem_card,
+              R.id.activity_expandablelistitem_card_title,
+              R.id.activity_expandablelistitem_card_content, items);
+      // super(context, items);
       mViewLayoutResId = R.layout.activity_expandablelistitem_card;
       mTitleParentResId = R.id.activity_expandablelistitem_card_title;
       mContentParentResId = R.id.activity_expandablelistitem_card_content;
@@ -95,24 +100,21 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
 
     private static class ViewHolder {
       ViewGroup titleParent;
+
       ViewGroup contentParent;
+
       View titleView;
+
       View contentView;
     }
 
     private ViewGroup createView(ViewGroup parent) {
       ViewGroup view;
-
-//      if (mViewLayoutResId == 0) {
-//        view = new RootView(mContext);
-//      } else {
-        view = (ViewGroup) LayoutInflater.from(mContext).inflate(mViewLayoutResId, parent, false);
-//      }
-
+      view = (ViewGroup) LayoutInflater.from(mContext).inflate(mViewLayoutResId, parent, false);
       return view;
     }
-    
-    public View getView(int position, View convertView, ViewGroup parent){
+
+    public View getView(int position, View convertView, ViewGroup parent) {
       ViewGroup view = (ViewGroup) convertView;
       ViewHolder viewHolder;
 
@@ -131,11 +133,13 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
       if (!titleView.equals(viewHolder.titleView)) {
         viewHolder.titleParent.removeAllViews();
         viewHolder.titleParent.addView(titleView);
-        
-        View buttonView = (View)LayoutInflater.from(mContext).inflate(R.layout.my_toggle, parent, false);
-        
-       buttonView.findViewById(R.id.mytoggle).setOnClickListener(new TitleViewOnClickListener(viewHolder.contentParent));
-       viewHolder.titleParent.addView(buttonView);
+
+        View buttonView = (View) LayoutInflater.from(mContext).inflate(R.layout.my_toggle, parent,
+                false);
+
+        buttonView.findViewById(R.id.mytoggle).setOnClickListener(
+                new TitleViewOnClickListener(viewHolder.contentParent));
+        viewHolder.titleParent.addView(buttonView);
       }
       viewHolder.titleView = titleView;
 
@@ -145,12 +149,12 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
         viewHolder.contentParent.addView(contentView);
       }
 
-      viewHolder.contentParent.setVisibility(mVisibleIds.contains(getItemId(position)) ? View.VISIBLE : View.GONE);
+      viewHolder.contentParent
+              .setVisibility(mVisibleIds.contains(getItemId(position)) ? View.VISIBLE : View.GONE);
       viewHolder.contentParent.setTag(getItemId(position));
       return view;
     }
-    
-    
+
     private class TitleViewOnClickListener implements View.OnClickListener {
 
       private View mContentParent;
@@ -223,20 +227,7 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
         return animator;
       }
     }
-    
-//    @Override
-//    public View getView(int position, View convertView, ViewGroup parent) {
-//      View view = super.getView(position, convertView, parent);
-////      view.setOnClickListener(null);
-////      TextView tv = (TextView) convertView;
-////      if (tv == null) {
-////        tv = (TextView) LayoutInflater.from(mContext).inflate(R.layout.list_row, parent, false);
-////      }
-////      tv.setText(getItem(position).content);
-////      return tv;
-//      return view;
-//    }
-    
+
     @Override
     public View getTitleView(int position, View convertView, ViewGroup parent) {
       TextView tv = (TextView) convertView;
@@ -308,8 +299,8 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
       Log.e("view", e.toString());
     }
   }
-  
-   @Override
+
+  @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
     View rootView = inflater.inflate(R.layout.fragment_report_detail, container, false);
     if (mItem != null) {

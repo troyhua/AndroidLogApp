@@ -19,6 +19,7 @@ import android.util.Log;
 import cmu.troy.applogger.JSONKeys.JSONValues;
 
 public class LogAnalyzer {
+  @SuppressWarnings("deprecation")
   public static ArrayList<Event> clusterEvent(List<JSONObject> unitList) {
     ArrayList<Event> ret = new ArrayList<Event>();
     int lastIndex = 0;
@@ -56,6 +57,9 @@ public class LogAnalyzer {
   }
 
   public static Event createEvent(List<JSONObject> unitList) throws JSONException {
+    
+    //MainActivity.initializePackageNameDictionary();
+    
     Event event = new Event();
     event.allUnitEvents = unitList;
     for (JSONObject job : unitList) {
@@ -69,7 +73,7 @@ public class LogAnalyzer {
       if (type.equals(JSONValues.OPEN_AN_APP)) {
         String appPath = job.getString(JSONKeys.first);
         if (!appPath.startsWith("com.android.launcher/") && !appPath.startsWith("com.android.systemui")) {
-          String packageName = Tools.getPackage(appPath);
+          String packageName = Tools.getAppName(appPath);
           if (event.appMap.containsKey(packageName))
             event.appMap.put(packageName, event.appMap.get(packageName));
           else
@@ -83,8 +87,9 @@ public class LogAnalyzer {
     return event;
   }
 
+  @SuppressWarnings("deprecation")
   public static void renderEvent(Event event) throws JSONException {
-
+    
     if (event.callEvent != null) {
 
       SpannableString ns = new SpannableString("Contacted "
