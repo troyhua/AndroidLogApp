@@ -11,6 +11,10 @@ public class JSONKeys {
   public final static String time = "time";
   public final static String log_type = "log_type";
   public final static String number = "number";
+  public final static String addr_available = "addr_available";
+  public final static String address = "address";
+  public final static String city = "city";
+  public final static String country = "country";
   
   
   

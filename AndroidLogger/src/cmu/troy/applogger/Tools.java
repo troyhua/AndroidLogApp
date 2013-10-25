@@ -38,7 +38,9 @@ public class Tools {
   private static final String musicFile = "log/music.txt";
 
   public static final String STAR_SPLIT = "****************";
-
+  
+  public static final double SMALL_DISTANCE = 99.0; // in meters
+  
   public static int max(int a, int b) {
     if (a > b)
       return a;

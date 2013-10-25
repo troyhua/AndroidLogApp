@@ -3,6 +3,8 @@ package cmu.troy.applogger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -57,9 +59,9 @@ public class LogAnalyzer {
   }
 
   public static Event createEvent(List<JSONObject> unitList) throws JSONException {
-    
-    //MainActivity.initializePackageNameDictionary();
-    
+
+    // MainActivity.initializePackageNameDictionary();
+
     Event event = new Event();
     event.allUnitEvents = unitList;
     for (JSONObject job : unitList) {
@@ -72,7 +74,8 @@ public class LogAnalyzer {
       }
       if (type.equals(JSONValues.OPEN_AN_APP)) {
         String appPath = job.getString(JSONKeys.first);
-        if (!appPath.startsWith("com.android.launcher/") && !appPath.startsWith("com.android.systemui")) {
+        if (!appPath.startsWith("com.android.launcher/")
+                && !appPath.startsWith("com.android.systemui")) {
           String packageName = Tools.getAppName(appPath);
           if (event.appMap.containsKey(packageName))
             event.appMap.put(packageName, event.appMap.get(packageName));
@@ -89,7 +92,7 @@ public class LogAnalyzer {
 
   @SuppressWarnings("deprecation")
   public static void renderEvent(Event event) throws JSONException {
-    
+
     if (event.callEvent != null) {
 
       SpannableString ns = new SpannableString("Contacted "
@@ -137,12 +140,20 @@ public class LogAnalyzer {
                       event.allUnitEvents.size() - 1).getString(JSONKeys.time)))));
       ns.setSpan(new ForegroundColorSpan(Color.GRAY), 4, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
       event.content = TextUtils.concat(event.content, ns);
-      if (apps.size() > 1){
-        ns = new SpannableString("\nWith the following apps:");
-        ns.setSpan(new ForegroundColorSpan(Color.CYAN), 1, ns.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      String location = getAddress(event);
+      if (!location.equals("")){
+        ns = new SpannableString("\nLocation:" + location);
+        ns.setSpan(new ForegroundColorSpan(Color.DKGRAY), 1, 9,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        event.content = TextUtils.concat(event.content, ns);
+      }
+      if (apps.size() > 1) {
+        ns = new SpannableString("\nYou also use the following apps:");
+        ns.setSpan(new ForegroundColorSpan(Color.CYAN), 1, ns.length(),
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         event.content = TextUtils.concat(event.content, ns);
         StringBuilder sb = new StringBuilder();
-        for (String app : apps){
+        for (String app : apps) {
           if (!app.equals(keyApp))
             sb.append("\n" + app);
         }
@@ -181,5 +192,96 @@ public class LogAnalyzer {
       allUnitEvents.add(single);
       keyEvent = single;
     }
+  }
+
+  public static class LocEvent {
+    public List<Event> allEvents;
+
+    public String address;
+
+    public CharSequence content = "";
+
+    public CharSequence title = "";
+
+    public LocEvent(String address) {
+      allEvents = new ArrayList<Event>();
+      this.address = address;
+    }
+  }
+
+  private static void renderLocEvent(LocEvent locEvent) {
+    if (!locEvent.address.equals("")) {
+      locEvent.title = locEvent.address;
+    }else{
+      locEvent.title = "Events without address information";
+    }
+    HashSet<CharSequence> eventSet = new HashSet<CharSequence>();
+    for (Event event : locEvent.allEvents) {
+      eventSet.add(event.title);
+    }
+    if (!locEvent.address.equals(""))
+      locEvent.content = "At this place, you made the following interaction with your cell phone";
+    for (CharSequence str : eventSet) {
+      locEvent.content = TextUtils.concat(locEvent.content, "\n", str);
+    }
+  }
+
+  private static String getAddress(Event event) {
+    Hashtable<String, Integer> addressTable = new Hashtable<String, Integer>();
+    for (JSONObject job : event.allUnitEvents) {
+      try {
+        if (job.has(JSONKeys.addr_available)) {
+          if (job.getBoolean(JSONKeys.addr_available)) {
+            String address = job.getString(JSONKeys.address);
+            if (addressTable.containsKey(address))
+              addressTable.put(address, addressTable.get(address) + 1);
+            else
+              addressTable.put(address, 1);
+          }
+        }
+      } catch (Exception e) {
+        Log.e("Addr", e.toString());
+      }
+    }
+    if (addressTable.size() == 0)
+      return "";
+    String maxAddr = "";
+    int max = -1;
+    for (String key : addressTable.keySet()) {
+      if (addressTable.get(key) > max) {
+        max = addressTable.get(key);
+        maxAddr = key;
+      }
+    }
+    return maxAddr;
+  }
+
+  public static List<LocEvent> ClusterLocFromEvents(List<Event> events) {
+    Hashtable<String, LocEvent> locTable = new Hashtable<String, LocEvent>();
+    for (Event event : events) {
+      String addr = getAddress(event);
+      if (locTable.containsKey(addr)) {
+        locTable.get(addr).allEvents.add(event);
+      } else {
+        LocEvent locEvent = new LocEvent(addr);
+        locEvent.allEvents.add(event);
+        locTable.put(addr, locEvent);
+      }
+    }
+    List<LocEvent> ret = new ArrayList<LocEvent>();
+    for (String addr : locTable.keySet()) {
+      LocEvent loc = locTable.get(addr);
+      renderLocEvent(loc);
+      ret.add(loc);
+    }
+    return ret;
+  }
+
+  public static List<Event> GetEventFromLocEvents(List<LocEvent> locs) {
+    List<Event> ret = new ArrayList<Event>();
+    for (LocEvent loc : locs){
+      ret.addAll(loc.allEvents);
+    }
+    return ret;
   }
 }

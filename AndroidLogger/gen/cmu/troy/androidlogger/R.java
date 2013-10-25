@@ -183,7 +183,8 @@ containing a value of this type.
         public static final int ic_launcher=0x7f020019;
     }
     public static final class id {
-        public static final int action_settings=0x7f050012;
+        public static final int about=0x7f050012;
+        public static final int action_settings=0x7f050013;
         public static final int activity_expandablelistitem_card_content=0x7f050008;
         public static final int activity_expandablelistitem_card_title=0x7f050006;
         public static final int button1=0x7f05000e;
@@ -234,8 +235,9 @@ containing a value of this type.
         public static final int my_toggle=0x7f03000c;
     }
     public static final class menu {
-        public static final int display_message=0x7f090000;
-        public static final int main=0x7f090001;
+        public static final int activity_itemdetail=0x7f090000;
+        public static final int display_message=0x7f090001;
+        public static final int main=0x7f090002;
     }
     public static final class string {
         public static final int action_settings=0x7f060016;
@@ -327,6 +329,7 @@ containing a value of this type.
         public static final int location_button=0x7f060020;
         public static final int message_key=0x7f06001d;
         public static final int preference_file_key=0x7f06001c;
+        public static final int saveLogFile=0x7f060025;
         public static final int title_activity_display_message=0x7f06001a;
         public static final int title_log_detail=0x7f060022;
         public static final int title_log_list=0x7f060021;

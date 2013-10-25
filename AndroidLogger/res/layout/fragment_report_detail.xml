@@ -3,11 +3,11 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical" >
-
+	
     <Button 
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Generate New Log File"
+        android:text="@string/saveLogFile"
         android:onClick="generate_new_log_file"/>
     
     <ListView

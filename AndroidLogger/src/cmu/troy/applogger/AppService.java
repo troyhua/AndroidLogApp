@@ -14,30 +14,26 @@
 
 package cmu.troy.applogger;
 
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningTaskInfo;
-import android.content.Context;
-import android.content.Intent;
-import android.location.Location;
-import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningTaskInfo;
+import android.content.Context;
+import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import cmu.troy.applogger.JSONKeys.JSONValues;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -48,6 +44,10 @@ public class AppService extends WakefulIntentService implements
         GooglePlayServicesClient.ConnectionCallbacks,
         GooglePlayServicesClient.OnConnectionFailedListener {
   private static List<String> lastApps = new ArrayList<String>();
+
+  private static Location lastLocation;
+
+  private static Address lastAddress;
 
   private LocationClient mLocationClient;
 
@@ -70,22 +70,6 @@ public class AppService extends WakefulIntentService implements
 
   private List<String> getLastApps() throws IOException {
     return lastApps;
-    // File file = Tools.getLastAppFile();
-    // ArrayList<String> res = new ArrayList<String>();
-    // if (!file.exists()){
-    // Tools.safeCreateFile(file);
-    // return res;
-    // }
-
-    // BufferedReader reader = new BufferedReader(new FileReader(file));
-    // String ts = reader.readLine(); // the first line is the date
-    // ts = reader.readLine();
-    // while (ts != null){
-    // res.add(ts);
-    // ts = reader.readLine();
-    // }
-    // reader.close();
-    // return res;
   }
 
   private List<String> getCurrentApps() {
@@ -118,19 +102,9 @@ public class AppService extends WakefulIntentService implements
     if (newApps == null || newApps.size() == 0)
       return;
 
-    /* Log currentApps to last apps file */
-//    File file = Tools.getLastAppFile();
-//    PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(file.getAbsolutePath(),
-//            false)));
-//    Date now = new Date();
-//    writer.println(now.toString());
-//    for (String s : currentApps)
-//      writer.println(s);
-//    writer.close();
-
     lastApps = currentApps;
     Date now = new Date();
-    
+
     /* Append new Apps into log file */
     JSONObject job = new JSONObject();
     String id = String.valueOf(now.getTime());
@@ -148,6 +122,33 @@ public class AppService extends WakefulIntentService implements
         job.put(JSONKeys.longitude, mLocation.getLongitude());
         job.put(JSONKeys.location_accuracy, mLocation.getAccuracy());
         job.put(JSONKeys.location_updated_time, (new Date(mLocation.getTime())).toString());
+
+        if (lastLocation == null || lastAddress == null
+                || lastLocation.distanceTo(mLocation) > Tools.SMALL_DISTANCE) {
+          /* Log Address if location is available */
+          Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+          List<Address> addresses = null;
+          addresses = geocoder
+                  .getFromLocation(mLocation.getLatitude(), mLocation.getLongitude(), 1);
+          if (addresses != null && addresses.size() > 0) {
+            job.put(JSONKeys.addr_available, true);
+            Address address = addresses.get(0);
+            lastAddress = address;
+            job.put(JSONKeys.address,
+                    address.getMaxAddressLineIndex() > 0 ? address.getAddressLine(0) : "");
+            job.put(JSONKeys.city, address.getLocality());
+            job.put(JSONKeys.country, address.getCountryName());
+          } else {
+            job.put(JSONKeys.addr_available, false);
+          }
+        } else {
+          job.put(JSONKeys.addr_available, true);
+          job.put(JSONKeys.address,
+                  lastAddress.getMaxAddressLineIndex() > 0 ? lastAddress.getAddressLine(0) : "");
+          job.put(JSONKeys.city, lastAddress.getLocality());
+          job.put(JSONKeys.country, lastAddress.getCountryName());
+        }
+        lastLocation = mLocation;
       } else {
         if (!mLocationClient.isConnecting())
           mLocationClient.connect();
