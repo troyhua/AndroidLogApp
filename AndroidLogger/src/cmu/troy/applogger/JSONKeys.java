@@ -26,5 +26,7 @@ public class JSONKeys {
     public final static String INCOMING_CALL = "incoming call";
     public final static String CALL_BEGIN = "call_begin";
     public final static String CALL_END = "call_end";
+    public final static String SMS_RECEIVED = "sms received";
+    public final static String SMS_SENT = "sms sent";
   }
 }

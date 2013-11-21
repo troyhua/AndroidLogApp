@@ -5,6 +5,8 @@ import java.util.Date;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import cmu.troy.applogger.JSONKeys.JSONValues;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -28,10 +30,11 @@ public class SmsReceiver extends BroadcastReceiver {
       job.put(JSONKeys.id, String.valueOf((new Date()).getTime()));
 
       if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
-        job.put(JSONKeys.log_type, "SMS_received");
+        job.put(JSONKeys.log_type, JSONValues.SMS_RECEIVED);
         job.put(JSONKeys.number, origin);
-        // sb.append("Received message from " + origin + " with content: " + body);
+        // TODO log content of the SMS
         Tools.logJsonNewBlock(job);
+        // SMS_SENT cannot be logged down
       } else if (intent.getAction().equals("android.provider.Telephony.SMS_SENT")) {
         job.put(JSONKeys.log_type, "SMS_sent");
         job.put(JSONKeys.number, origin);

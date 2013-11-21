@@ -22,6 +22,12 @@ import cmu.troy.applogger.JSONKeys.JSONValues;
 
 public class LogAnalyzer {
   @SuppressWarnings("deprecation")
+  /**
+   * Cluster a list of actions into a list of event based on time interval. When two logged actions have 
+   * an interval longer than 120 seconds, this will create an event
+   * @param unitList
+   * @return
+   */
   public static ArrayList<Event> clusterEvent(List<JSONObject> unitList) {
     ArrayList<Event> ret = new ArrayList<Event>();
     int lastIndex = 0;
@@ -35,8 +41,10 @@ public class LogAnalyzer {
         } else {
           long totalSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
           if (totalSeconds > 120) {
+            // Create event for a list of actions
             Event event = createEvent(unitList.subList(lastIndex, i));
-            if (!event.ommited)
+            // When events only contains screen on/off and desktop, we omit this event
+            if (!event.omited)
               ret.add(event);
             lastIndex = i;
             lastDate = thisDate;
@@ -50,18 +58,16 @@ public class LogAnalyzer {
     }
     try {
       Event event = createEvent(unitList.subList(lastIndex, unitList.size()));
-      if (!event.ommited)
+      if (!event.omited)
         ret.add(event);
     } catch (Exception e) {
       Log.e("json", e.toString());
     }
     return ret;
   }
-
+  
+  // Create an event from a list of actions
   public static Event createEvent(List<JSONObject> unitList) throws JSONException {
-
-    // MainActivity.initializePackageNameDictionary();
-
     Event event = new Event();
     event.allUnitEvents = unitList;
     for (JSONObject job : unitList) {
@@ -72,21 +78,24 @@ public class LogAnalyzer {
       if (type.equals(JSONValues.CALL_END)) {
         event.callEndEvent = job;
       }
+      if (type.equals(JSONValues.SMS_RECEIVED) || type.equals(JSONValues.SMS_SENT)){
+        event.smsEvent = job;
+      }
       if (type.equals(JSONValues.OPEN_AN_APP)) {
         String appPath = job.getString(JSONKeys.first);
+        // not desktop
         if (!appPath.startsWith("com.android.launcher/")
                 && !appPath.startsWith("com.android.systemui")) {
           String packageName = Tools.getAppName(appPath);
           if (event.appMap.containsKey(packageName))
-            event.appMap.put(packageName, event.appMap.get(packageName));
+            event.appMap.put(packageName, event.appMap.get(packageName) + 1);
           else
             event.appMap.put(packageName, 1);
         }
       }
     }
-
+    // render event view and also decide if this event should be omitted
     renderEvent(event);
-
     return event;
   }
 
@@ -94,7 +103,6 @@ public class LogAnalyzer {
   public static void renderEvent(Event event) throws JSONException {
 
     if (event.callEvent != null) {
-
       SpannableString ns = new SpannableString("Contacted "
               + event.callEvent.getString(JSONKeys.number));
       ns.setSpan(new ForegroundColorSpan(Color.BLUE), 0, 10, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -111,6 +119,18 @@ public class LogAnalyzer {
         ns.setSpan(new ForegroundColorSpan(Color.GRAY), 4, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         event.content = TextUtils.concat(event.content, ns);
       }
+      return;
+    }
+    if (event.smsEvent != null) {
+      SpannableString ns = new SpannableString("Texting with "
+              + event.smsEvent.getString(JSONKeys.number));
+      ns.setSpan(new ForegroundColorSpan(Color.BLUE), 0, 12, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.title = ns;
+      String startTime = Tools.getSimpleTime(new Date(Date.parse(event.smsEvent
+              .getString(JSONKeys.time))));
+      ns = new SpannableString("From " + startTime);
+      ns.setSpan(new ForegroundColorSpan(Color.GRAY), 5, 10, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+      event.content = ns;
       return;
     }
     if (!event.appMap.isEmpty()) {
@@ -161,7 +181,7 @@ public class LogAnalyzer {
       }
       return;
     }
-    event.ommited = true;
+    event.omited = true;
     return;
   }
 
@@ -177,8 +197,10 @@ public class LogAnalyzer {
     public JSONObject callEvent = null;
 
     public JSONObject callEndEvent = null;
+    
+    public JSONObject smsEvent = null;
 
-    public boolean ommited = false;
+    public boolean omited = false;
 
     public List<JSONObject> noDesktopApp = new ArrayList<JSONObject>();
 
@@ -215,13 +237,13 @@ public class LogAnalyzer {
     }else{
       locEvent.title = "Events without address information";
     }
-    HashSet<CharSequence> eventSet = new HashSet<CharSequence>();
+    Hashtable<String, CharSequence> eventSet = new Hashtable<String, CharSequence>();
     for (Event event : locEvent.allEvents) {
-      eventSet.add(event.title);
+      eventSet.put(event.title.toString(), event.title);
     }
     if (!locEvent.address.equals(""))
-      locEvent.content = "At this place, you made the following interaction with your cell phone";
-    for (CharSequence str : eventSet) {
+      locEvent.content = "Here, you have " + eventSet.size() + " operations:";
+    for (CharSequence str : eventSet.values()) {
       locEvent.content = TextUtils.concat(locEvent.content, "\n", str);
     }
   }

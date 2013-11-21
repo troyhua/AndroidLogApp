@@ -39,6 +39,8 @@ import cmu.troy.applogger.JSONKeys.JSONValues;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient;
 import com.google.android.gms.location.LocationClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
 
 public class AppService extends WakefulIntentService implements
         GooglePlayServicesClient.ConnectionCallbacks,
@@ -122,7 +124,19 @@ public class AppService extends WakefulIntentService implements
         job.put(JSONKeys.longitude, mLocation.getLongitude());
         job.put(JSONKeys.location_accuracy, mLocation.getAccuracy());
         job.put(JSONKeys.location_updated_time, (new Date(mLocation.getTime())).toString());
-
+        
+        Date updateTime = new Date(mLocation.getTime());
+        if ((updateTime.getTime() - now.getTime()) / 60000 > 5){
+          Tools.runningLog("Last location is too old, a location update is triggered.");
+          LocationRequest request = new LocationRequest();
+          request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+          mLocationClient.requestLocationUpdates(request, new LocationListener(){
+            @Override
+            public void onLocationChanged(Location arg0) {
+            }
+          });
+        }
+                
         if (lastLocation == null || lastAddress == null
                 || lastLocation.distanceTo(mLocation) > Tools.SMALL_DISTANCE) {
           /* Log Address if location is available */

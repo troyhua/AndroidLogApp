@@ -2,18 +2,20 @@ package cmu.troy.applogger;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Hashtable;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.AssetFileDescriptor;
+import android.database.ContentObserver;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
@@ -185,26 +187,6 @@ public class MainActivity extends FragmentActivity implements
     }
     mainView.setMovementMethod(new ScrollingMovementMethod());
     mainView.setText(sb.toString());
-  }
-
-  // This function is called by the button "check last app", used to show the content of last app
-  public void seelast(View view) throws IOException {
-    BufferedReader reader = null;
-    try {
-      reader = new BufferedReader(new FileReader(Tools.getLastAppFile()));
-      StringBuilder sb = new StringBuilder();
-      String ts = reader.readLine();
-      while (ts != null) {
-        sb.append(ts + "\n");
-        ts = reader.readLine();
-      }
-      TextView mainView = (TextView) findViewById(R.id.main_view);
-      mainView.setMovementMethod(new ScrollingMovementMethod());
-      mainView.setText(sb.toString());
-    } finally {
-      if (reader != null)
-        reader.close();
-    }
   }
 
   // This function is called by the button "check log", used to show the content of the log, maximum

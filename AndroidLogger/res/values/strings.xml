@@ -17,6 +17,6 @@
     <string name="title_log_detail">log Detail</string>
     <string name="title_report_list">Reports</string>
     <string name="title_report_detail">Report Detail</string>
-    <string name="saveLogFile">Save This Log File</string>
+    <string name="saveLogFile">Update Log and Send it via Email</string>
 
 </resources>

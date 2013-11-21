@@ -15,10 +15,11 @@
         android:text="@string/button_check"
         android:onClick="seelog" />
 
-	    <Button android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:text="@string/button_last"
-	        android:onClick="seelast" />
+		<Button
+		    android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:onClick="seeDebug"
+		    android:text="@string/debug_button" />
 		    
 	</LinearLayout>
     
@@ -26,28 +27,25 @@
         android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
 	    android:orientation="horizontal">
-        <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="seeDebug"
-        android:text="@string/debug_button" />
 
    	 	<Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="checkCurrentLocation"
         android:text="@string/location_button" />
+
+   	 	<Button
+   	 	    android:layout_width="wrap_content"
+   	 	    android:layout_height="wrap_content"
+   	 	    android:onClick="goToAnalyzer"
+   	 	    android:text="Open Analyzer" />
+
     </LinearLayout>
     
     <LinearLayout 
         android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
 	    android:orientation="horizontal">
-        <Button 
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="goToAnalyzer"
-            android:text="Open Analyzer"/>
         
     </LinearLayout>
     

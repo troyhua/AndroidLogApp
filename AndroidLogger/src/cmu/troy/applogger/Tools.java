@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -37,10 +38,12 @@ public class Tools {
 
   private static final String musicFile = "log/music.txt";
 
+  private static final String runningLog = "log/running_log.txt";
+
   public static final String STAR_SPLIT = "****************";
-  
+
   public static final double SMALL_DISTANCE = 99.0; // in meters
-  
+
   public static int max(int a, int b) {
     if (a > b)
       return a;
@@ -69,8 +72,8 @@ public class Tools {
   public static String getPackage(String fullAppPath) {
     return fullAppPath.substring(0, fullAppPath.indexOf("/"));
   }
-  
-  public static String getAppName(String fullAppPath){
+
+  public static String getAppName(String fullAppPath) {
     String packageName = fullAppPath.substring(0, fullAppPath.indexOf("/"));
     if (MainActivity.package2name.containsKey(packageName))
       return MainActivity.package2name.get(packageName);
@@ -207,18 +210,34 @@ public class Tools {
     }
   }
 
-  private static File createUpdatedFile(File oldFile) {
+  public static File getUpdatedFile(File oldFile) {
     return new File(oldFile.getParent(), "updated-" + oldFile.getName());
   }
 
   public static boolean updatedFileExist(File oldFile) {
-    File file = createUpdatedFile(oldFile);
+    File file = getUpdatedFile(oldFile);
     return file.exists();
+  }
+
+  @SuppressLint("SimpleDateFormat")
+  public static void runningLog(String logContent) {
+    File file = new File(Environment.getExternalStorageDirectory(), runningLog);
+    try {
+      Tools.safeCreateFile(file);
+      DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd, hh:mm:ss");
+      Date now = new Date();
+      PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
+              file.getAbsoluteFile(), true)));
+      writer.println(dateFormat.format(now) + "\t" + logContent);
+      writer.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public static void newLogFile(List<JSONObject> jobs, File oldFile) {
     try {
-      File file = createUpdatedFile(oldFile);
+      File file = getUpdatedFile(oldFile);
       Tools.safeCreateFile(file);
       PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
               file.getAbsoluteFile(), false)));

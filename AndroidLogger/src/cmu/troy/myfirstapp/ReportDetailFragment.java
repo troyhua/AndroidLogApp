@@ -28,6 +28,7 @@ import cmu.troy.androidlogger.R;
 import cmu.troy.applogger.LogAnalyzer;
 import cmu.troy.applogger.LogAnalyzer.Event;
 import cmu.troy.applogger.LogAnalyzer.LocEvent;
+import cmu.troy.applogger.Tools;
 
 import com.haarman.listviewanimations.ArrayAdapter;
 import com.haarman.listviewanimations.itemmanipulation.ExpandableListItemAdapter;
@@ -37,12 +38,9 @@ import com.haarman.listviewanimations.itemmanipulation.contextualundo.Contextual
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.ValueAnimator;
 
-//import com.haarman.listviewanimations.itemmanipulation.ExpandableListItemAdapter.TitleViewOnClickListener;
 
 /**
- * A fragment representing a single Report detail screen. This fragment is either contained in a
- * {@link ReportListActivity} in two-pane mode (on tablets) or a {@link ReportDetailActivity} on
- * handsets.
+ * This class contains the main logic for rendering content in detail view of analyzer
  */
 public class ReportDetailFragment extends Fragment implements OnNavigationListener,
         OnDismissCallback, DeleteItemCallback {
@@ -528,11 +526,12 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
   public static List<Event> getItems(File logFile) {
     List<JSONObject> logs = new ArrayList<JSONObject>();
     try {
+      // read everything from log file
       logs = readLog(logFile);
     } catch (Exception e) {
       Log.e("json", e.toString());
     }
-
+    // cluster log into events
     return LogAnalyzer.clusterEvent(logs);
   }
 
@@ -556,10 +555,12 @@ public class ReportDetailFragment extends Fragment implements OnNavigationListen
     mRootView = rootView;
     if (mItem != null) {
       File logFile = mItem.logFile;
+      if (mItem.updatedFileExisted){
+        logFile = Tools.getUpdatedFile(logFile);
+      }
       mAdapter = createListAdapter(logFile);
       setSwipeDismissAdapter(rootView);
     }
-
     return rootView;
   }
 
